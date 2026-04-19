@@ -2,13 +2,12 @@
 
 ## Milestone 1: Core Command Pipeline (MVP)
 
-### Phase 1: Infrastructure & Connection (The Nervous System)
-*Set up the communication layer between Python, Supabase, and basic OS calls.*
-- **Outcome**: Python script listening to Supabase and opening a browser URL on command.
-- **Plans**:
-    - [ ] `1.1-supabase-setup`: Initialize project, create `commands` table with RLS and Realtime.
-    - [ ] `1.2-python-backbone`: Create Python script using `supabase-py` to listen for new rows.
-    - [ ] `1.3-basic-execution`: Implement `webbrowser` and `subprocess` wrappers in Python.
+### Phase 1: Infrastructure & Connection (The Nervous System) ✅
+*Focus: Communication layer and local execution.*
+- [x] Initialize Supabase `commands` table with Realtime enabled.
+- [x] Implement Python background listener using `supabase-py`.
+- [x] Implement basic OS execution engine (Web, Terminal, App launch).
+- [x] **Verification**: Manually triggered command from Supabase executes on local machine.
 
 ### Phase 2: AI Intelligence (The Brain)
 *Integrate Groq for ultra-fast intent extraction and natural responses.*

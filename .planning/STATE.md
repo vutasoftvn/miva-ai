@@ -3,15 +3,15 @@
 ## Milestone 1: Core Command Pipeline (MVP)
 *Goal: Voice-to-Action with ultra-low latency.*
 
-### Current Status: 🟢 Initialized
-- **Overall Progress**: 5%
-- **Current Phase**: Phase 1: Infrastructure & Connection
-- **Active Plans**: None yet.
+### Current Status: 🔵 Phase 1 Complete
+- **Overall Progress**: 25%
+- **Current Phase**: Phase 2: AI Intelligence
+- **Active Plans**: 02-PLAN.md (Planning...)
 
 ### Phase Progress
 | Phase | Title | Status | Plans Completed |
 |-------|-------|--------|-----------------|
-| 1 | Infrastructure & Connection | ⏳ Pending | 0/3 |
+| 1 | Infrastructure & Connection | ✅ Complete | 1/1 |
 | 2 | AI Intelligence | ⏳ Pending | 0/3 |
 | 3 | Flutter Interface | ⏳ Pending | 0/3 |
 | 4 | Integration & Polish | ⏳ Pending | 0/3 |

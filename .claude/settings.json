@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Skill(gsd-execute-phase)",
+      "Skill(gsd-execute-phase:*)"
+    ]
+  }
+}
