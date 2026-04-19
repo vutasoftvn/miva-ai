@@ -91,7 +91,7 @@ class MivaCore:
 
         # Nếu đang ở Stage 2-7 (Coding), gõ thẳng vào Terminal của Claude
         if current_stage and current_stage['id'] > 1:
-            if self.executor.current_session and self.executor.current_session.isalive():
+            if self.executor.current_process and self.executor.current_process.poll() is None:
                 self.executor.send_to_terminal(input_text)
                 await self.db.update_command_status(record.get("id"), "done")
                 return
@@ -160,17 +160,17 @@ class MivaCore:
         else:
             # Các stage sau đó chỉ cần gõ lệnh mới vào session đang mở
             next_stage = self.local_db.get_stage(next_id)
-            if self.executor.current_session:
+            if self.executor.current_process:
                 self.executor.send_to_terminal(next_stage['claude_command'])
 
     def stop_execution(self):
         if self.executor.current_session:
-            self.executor.current_session.terminate()
+            self.executor.current_process.terminate()
             print("[MIVA] Đã dừng session terminal.")
 
     async def monitor_terminal(self):
         """Liên tục đọc log terminal (Chỉ chạy ở Stage 2-7)."""
-        while self.executor.current_session and self.executor.current_session.isalive():
+        while self.executor.current_process and self.executor.current_process.poll() is None:
             current_stage = self.local_db.get_current_running_stage()
             if not current_stage or current_stage['id'] == 1:
                 break # Không log terminal khi đang brainstorming

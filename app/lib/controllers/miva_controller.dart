@@ -35,10 +35,6 @@ class MivaController extends GetxController {
   StreamSubscription? _flowSubscription;
   StreamSubscription? _logSubscription;
 
-  @override
-  void onInit() {
-    super.onInit();
-  }
 
   Future<void> _initSafeBubble() async {
     try {
@@ -87,24 +83,28 @@ class MivaController extends GetxController {
     await Future.delayed(const Duration(seconds: 5));
     debugPrint("--- [DESKTOP] Đang khởi động Python Orchestrator ---");
     try {
-      const String projectRoot = "/Volumes/SSD/DEV/javis";
-      final String scriptPath = "$projectRoot/src/main.py";
-      const String pythonPath = "/usr/bin/python3";
+      final String projectRoot = Platform.isWindows ? r"F:\DEV\miva-ai" : "/Volumes/SSD/DEV/javis";
+      final String scriptPath = Platform.isWindows 
+          ? "$projectRoot\\src\\main.py" 
+          : "$projectRoot/src/main.py";
+      final String pythonPath = Platform.isWindows ? "python" : "/usr/bin/python3";
 
       if (!File(scriptPath).existsSync()) {
         debugPrint("[ERROR] Không tìm thấy file script tại: $scriptPath");
         return;
       }
 
-      _pythonProcess = await Process.start(
-        pythonPath, 
-        [scriptPath],
-        mode: ProcessStartMode.detachedWithStdio,
-        workingDirectory: projectRoot,
-      ).catchError((e) {
+      try {
+        _pythonProcess = await Process.start(
+          pythonPath, 
+          [scriptPath],
+          mode: ProcessStartMode.detachedWithStdio,
+          workingDirectory: projectRoot,
+        );
+      } catch (e) {
         debugPrint("[ERROR] Lỗi thực thi Process.start: $e");
-        return null;
-      });
+        _pythonProcess = null;
+      }
 
       if (_pythonProcess == null) return;
 
@@ -198,9 +198,6 @@ class MivaController extends GetxController {
     });
   }
 
-  void _initSpeech() async {
-    await _speechToText.initialize();
-  }
 
   // --- Bubble Logic ---
   Future<void> _initBubble() async {

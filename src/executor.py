@@ -2,15 +2,17 @@ import subprocess
 import webbrowser
 import platform
 import os
-import pexpect
 import sys
+import threading
+import queue
 
 # Whitelist các lệnh Terminal an toàn (Mở rộng cho Ollama/Claude)
 ALLOWED_TERMINAL_COMMANDS = {
-    "ls": ["ls"],
+    "ls": ["ls"] if platform.system() != "Windows" else ["dir"],
+    "dir": ["dir"],
     "pwd": ["pwd"],
     "whoami": ["whoami"],
-    "ping": ["ping", "-c", "4"],
+    "ping": ["ping", "-n", "4"] if platform.system() == "Windows" else ["ping", "-c", "4"],
     "date": ["date"],
     "uptime": ["uptime"],
     "ollama": ["ollama"]
@@ -19,7 +21,9 @@ ALLOWED_TERMINAL_COMMANDS = {
 class ActionExecutor:
     def __init__(self):
         self.os_type = platform.system()
-        self.current_session = None
+        self.current_process = None
+        self.output_queue = queue.Queue()
+        self.error_queue = queue.Queue()
 
     def get_ollama_models(self) -> list:
         """
@@ -50,30 +54,50 @@ class ActionExecutor:
 
     def launch_claude_cli(self, model_name: str = "claude"):
         """
-        Khởi động Claude CLI (qua Ollama hoặc lệnh riêng) dùng pexpect.
+        Khởi động Claude CLI (qua Ollama hoặc lệnh riêng) dùng subprocess.
         """
         if not model_name:
             self.select_model()
             model_name = self.current_model
             
-        # Giả định lệnh là 'ollama run <model_name>' dựa trên yêu cầu
-        cmd = f"ollama run {model_name}"
-        print(f"[EXECUTOR] Đang khởi động: {cmd}")
+        cmd = ["ollama", "run", model_name]
+        print(f"[EXECUTOR] Đang khởi động: {' '.join(cmd)}")
         
         try:
-            self.current_session = pexpect.spawn(cmd, encoding='utf-8', timeout=None)
-            self.current_session.logfile = sys.stdout # Log trực tiếp ra console để debug
+            self.current_process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                shell=True if self.os_type == "Windows" else False
+            )
+            
+            # Khởi chạy thread đọc output
+            threading.Thread(target=self._read_stream, args=(self.current_process.stdout, self.output_queue), daemon=True).start()
+            threading.Thread(target=self._read_stream, args=(self.current_process.stderr, self.error_queue), daemon=True).start()
+            
             return True
         except Exception as e:
             print(f"[ERROR] Không thể khởi động terminal: {e}")
             return False
 
+    def _read_stream(self, stream, q):
+        while True:
+            line = stream.readline()
+            if line:
+                q.put(line)
+            else:
+                break
+
     def send_to_terminal(self, text: str):
         """
         Gửi lệnh vào session terminal đang mở.
         """
-        if self.current_session and self.current_session.isalive():
-            self.current_session.sendline(text)
+        if self.current_process and self.current_process.poll() is None:
+            self.current_process.stdin.write(text + "\n")
+            self.current_process.stdin.flush()
             return True
         return False
 
@@ -81,17 +105,19 @@ class ActionExecutor:
         """
         Đọc output từ terminal (non-blocking).
         """
-        if not self.current_session:
+        if not self.current_process:
             return ""
         
+        lines = []
         try:
-            # Đọc những gì đang có trong buffer
-            self.current_session.expect(pexpect.TIMEOUT, timeout=timeout)
-            return self.current_session.before
-        except pexpect.EOF:
-            return "[TERMINAL CLOSED]"
-        except Exception:
-            return ""
+            while True:
+                # Lấy tất cả messages đang có trong queue
+                line = self.output_queue.get_nowait()
+                lines.append(line)
+        except queue.Empty:
+            pass
+        
+        return "".join(lines)
 
     def run_terminal(self, command_key: str, args: list = None) -> str:
         # (Giữ nguyên logic cũ cho các lệnh đơn lẻ)
